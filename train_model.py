@@ -8,13 +8,13 @@ import os
 import copy
 
 def main():
-    # 1. UPGRADED: Aggressive Data Augmentation
+    # 1. Aggressive Data Augmentation
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomResizedCrop(224, scale=(0.8, 1.0)), # Keep more of the cow in frame
+            transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15), # Tilt the images randomly
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2), # Vary the lighting
+            transforms.RandomRotation(15),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
@@ -27,7 +27,6 @@ def main():
     }
 
     data_dir = 'dataset_split'
-    
     if not os.path.exists(data_dir):
         print(f"Error: Cannot find '{data_dir}'.")
         return
@@ -37,28 +36,48 @@ def main():
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
     class_names = image_datasets['train'].classes
 
-    print(f"Training images: {dataset_sizes['train']} | Validation images: {dataset_sizes['val']}")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # Build the Model
+    # 2. Build the Model & PARTIAL FINE-TUNING
     model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+    
+    # First, freeze EVERYTHING
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # Second, UNFREEZE only the final convolutional block (layer4)
+    for param in model.layer4.parameters():
+        param.requires_grad = True
+
+    # 3. Build the Custom Classification Head with DROPOUT
     num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, len(class_names))
+    model.fc = nn.Sequential(
+        nn.Linear(num_ftrs, 128),        
+        nn.ReLU(),                       
+        nn.Dropout(0.5),                 
+        nn.Linear(128, len(class_names)) 
+    )
+    # (The new fully connected layers automatically have requires_grad=True)
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
     
-    # 2. UPGRADED: Lower Learning Rate + Weight Decay (prevents memorization)
-    optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
-    
-    # 3. UPGRADED: Learning Rate Scheduler (Drops LR by 10% every 7 epochs)
+    # 4. Filter parameters to ONLY send the unfrozen ones to the optimizer
+    params_to_update = []
+    for name, param in model.named_parameters():
+        if param.requires_grad == True:
+            params_to_update.append(param)
+            
+    # We use 1e-4 because training convolutional layers requires smaller, more careful steps
+    optimizer = optim.Adam(params_to_update, lr=1e-4, weight_decay=1e-4)
     step_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
-    # 4. UPGRADED: Train for 25 Epochs
     num_epochs = 25
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
+    print("Starting V4 Training (Partial Fine-Tuning)...")
+    
     for epoch in range(num_epochs):
         print(f'Epoch {epoch+1}/{num_epochs} | LR: {optimizer.param_groups[0]["lr"]:.6f}')
         print('-' * 15)
@@ -90,7 +109,6 @@ def main():
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
-            # Step the scheduler only after the training phase
             if phase == 'train':
                 step_lr_scheduler.step()
 
@@ -109,8 +127,8 @@ def main():
     print(f'Training complete! Best Validation Accuracy: {best_acc:.4f}')
     
     model.load_state_dict(best_model_wts)
-    torch.save(model.state_dict(), 'best_cow_classifier_v2.pth')
-    print("Saved as 'best_cow_classifier_v2.pth'")
+    torch.save(model.state_dict(), 'best_cow_classifier_v4.pth')
+    print("Saved as 'best_cow_classifier_v4.pth'")
 
 if __name__ == '__main__':
     main()
