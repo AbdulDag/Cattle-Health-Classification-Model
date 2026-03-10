@@ -12,6 +12,9 @@ found_cow = 0
 2. have yolo model apply bounding boxes on cows
 
  with its pre trained model on cow detection and spit out coords
+
+ Path 1: Frontend: Bounding boxes drawn
+ Path 2: backend: coords crop the photos into cow only pics which are then sent through pipeline to resnet18 model for analysis
 3. use coords to crop photo and cut image into cow only pics
 4. resnet18 model classifies each unique ID of cow and calculates ratio of
 --healthy classification to sick and from there outputs a final value--
@@ -58,11 +61,15 @@ while cv2.waitKey(1) != 27: #escape key
                 #extract x1,x2,x2,y2 cords
                 coords = box.xyxy[0]
                 print(f"Cow Located at coordinates: {coords}")
+                arr = np.array[coords]
+
+                #crop based on matrix values
             else: 
                 #use later for frontend idk
                 found_cow = 0
-
-    
+#figure out how to slice a 2D NumPy array in Python 
+#this is because yolo store in matrix format of rows and coloumns where row = y and coloumns = x (height and weidth)
+            
 cv2.imshow(win_name, frame)
 
 
