@@ -3,6 +3,10 @@ import numpy as np
 from ultralytics import YOLO as yolo
 import sys
 import torch 
+from PIL import Image
+
+from cow_model import get_diagnosis
+
 
 s = 0
 found_cow = 0
@@ -69,9 +73,15 @@ while cv2.waitKey(1) != 27: #escape key
                 #crop based on matrix values
                 #We pass slice instead of index like this: [start:end] credits to w3 schools
                 cow_crop = frame[y1:y2, x1:x2]
-
+                
+                
                 if cow_crop.size > 0:
                     cv2.imshow("Backend: Cropped Cow", cow_crop)
+                    prediction, conf_pct = get_diagnosis(cow_crop)
+                    box_color = (0, 255, 0) if prediction == 'Healthy' else (0, 0, 255)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 3)
+                    label = f"{prediction} ({conf_pct:.1f}%)"
+                    cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, box_color, 2)
             else: 
                 #use later for frontend idk
                 found_cow = 0
