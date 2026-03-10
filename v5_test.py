@@ -29,7 +29,7 @@ if len(sys.argv) > 1:
 
 source = cv2.VideoCapture(s)
 
-win_name ='video'
+win_name ='frontend'
 #initialize a window
 cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
 #download weights
@@ -61,16 +61,24 @@ while cv2.waitKey(1) != 27: #escape key
                 #extract x1,x2,x2,y2 cords
                 coords = box.xyxy[0]
                 print(f"Cow Located at coordinates: {coords}")
-                arr = np.array[coords]
-
+                #cvrt to int cuz the tensor values are floats, numpy needs integers, it cant cut a fraction of a pixel.
+                x1 = int(coords[0])
+                y1 = int(coords[1])
+                x2 = int(coords[2])
+                y2 = int(coords[3])
                 #crop based on matrix values
+                #We pass slice instead of index like this: [start:end] credits to w3 schools
+                cow_crop = frame[y1:y2, x1:x2]
+
+                if cow_crop.size > 0:
+                    cv2.imshow("Backend: Cropped Cow", cow_crop)
             else: 
                 #use later for frontend idk
                 found_cow = 0
 #figure out how to slice a 2D NumPy array in Python 
 #this is because yolo store in matrix format of rows and coloumns where row = y and coloumns = x (height and weidth)
             
-cv2.imshow(win_name, frame)
+        cv2.imshow(win_name, frame)
 
 
 source.release()
