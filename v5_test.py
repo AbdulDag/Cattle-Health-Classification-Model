@@ -36,16 +36,31 @@ cow_finder = yolo('yolov8n.pt')
 while cv2.waitKey(1) != 27: #escape key
     has_frame, frame = source.read()
     #after grabbing a frame give to yolo which returns a list of result objects
+    #moved break up so if frame is empty it leaves before doing the math
+    if not has_frame: 
+        break
     results = cow_finder(frame)
 
     #for loop: loop through bounding box , then check class id and if class id is 19 extract coords and print coords
     for result in results: 
-        boxes = result.boxed #boxes object of bounding box outputs
+        boxes = result.boxes #boxes object of bounding box outputs
         masks = result.masks #masks objects for segmentation masks outputs
+        keypoints = result.keypoints
+        probs = result.probs #probs object for classification output. we will use this
+        obb = result.obb #oriented boxes object for OBB outputs
 
-    if not has_frame: 
-        break
-    cv2.imshow(win_name, frame)
+    
+        for box in boxes: 
+        #extract class ID
+            class_id = int(box.cls[0])
+
+            if class_id == 19: 
+                #extract x1,x2,x2,y2 cords
+                coords = box.xyxy[0]
+                print(f"Cow Located at coordinates: {coords}")
+
+    
+cv2.imshow(win_name, frame)
 
 
 source.release()
