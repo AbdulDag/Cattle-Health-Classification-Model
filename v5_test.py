@@ -5,7 +5,7 @@ import sys
 import torch 
 
 s = 0
-
+found_cow = 0
 #pipeline blueprint: 
 """
 1. first process the video of the cow 
@@ -58,6 +58,9 @@ while cv2.waitKey(1) != 27: #escape key
                 #extract x1,x2,x2,y2 cords
                 coords = box.xyxy[0]
                 print(f"Cow Located at coordinates: {coords}")
+            else: 
+                #use later for frontend idk
+                found_cow = 0
 
     
 cv2.imshow(win_name, frame)
