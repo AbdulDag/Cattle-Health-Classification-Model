@@ -8,38 +8,29 @@ import os
 import copy
 
 def main():
-    # 1. Aggressive Data Augmentation
+    # 1. UPGRADED: Aggressive Data Augmentation (Authentic V4)
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomResizedCrop(224, scale=(0.7, 1.0)),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomRotation(degrees=20),
-            # added perspective warp to fix the angled shots issue
-            transforms.RandomPerspective(distortion_scale=0.3, p=0.5),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
-            
-            # THE BREED BIAS DESTROYER (Forces model to look at structure, not color)
-            transforms.RandomGrayscale(p=1.0),
-            
+            transforms.RandomResizedCrop(224, scale=(0.8, 1.0)), # Keep more of the cow in frame
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15), # Tilt the images randomly
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2), # Vary the lighting
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
-            
-            # Make sure validation is also grayscale for a fair test!
-            transforms.RandomGrayscale(p=1.0),
-            
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
     }
 
-    # IMPORTANT: Updated to read from the new auto-cropped folder
-    data_dir = 'dataset_cropped'
+    # IMPORTANT: Reads from the original split dataset
+    data_dir = 'dataset_split' 
+    
     if not os.path.exists(data_dir):
-        print(f"Error: Cannot find '{data_dir}'. Make sure you ran auto_cropper.py first!")
+        print(f"Error: Cannot find '{data_dir}'.")
         return
 
     image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
@@ -47,6 +38,7 @@ def main():
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
     class_names = image_datasets['train'].classes
 
+    print(f"Training images: {dataset_sizes['train']} | Validation images: {dataset_sizes['val']}")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # 2. Build the Model & PARTIAL FINE-TUNING
@@ -72,22 +64,25 @@ def main():
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    
+
     # 4. Filter parameters to ONLY send the unfrozen ones to the optimizer
     params_to_update = []
     for name, param in model.named_parameters():
         if param.requires_grad == True:
             params_to_update.append(param)
             
-    # We use 1e-4 because training convolutional layers requires smaller, more careful steps
+    # UPGRADED: Lower Learning Rate + Weight Decay (prevents memorization)
     optimizer = optim.Adam(params_to_update, lr=1e-4, weight_decay=1e-4)
+    
+    # UPGRADED: Learning Rate Scheduler (Drops LR by 10% every 7 epochs)
     step_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
+    # UPGRADED: Train for 25 Epochs
     num_epochs = 25
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
-    print("Starting V5 Training (Aggressive Augmentation + Grayscale)...")
+    print("Starting V4 Training (Partial Fine-Tuning)...")
     
     for epoch in range(num_epochs):
         print(f'Epoch {epoch+1}/{num_epochs} | LR: {optimizer.param_groups[0]["lr"]:.6f}')
@@ -120,6 +115,7 @@ def main():
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
+            # Step the scheduler only after the training phase
             if phase == 'train':
                 step_lr_scheduler.step()
 
@@ -136,10 +132,12 @@ def main():
         print()
 
     print(f'Training complete! Best Validation Accuracy: {best_acc:.4f}')
-    
+
     model.load_state_dict(best_model_wts)
-    torch.save(model.state_dict(), 'best_cow_classifier_v5.pth')
-    print("Saved as 'best_cow_classifier_v5.pth'")
+    
+    os.makedirs('models', exist_ok=True)
+    torch.save(model.state_dict(), 'models/best_cow_classifier_v4.pth')
+    print("Saved as 'models/best_cow_classifier_v4.pth'")
 
 if __name__ == '__main__':
     main()

@@ -2,3 +2,5 @@ cow_dataset/
 dataset_split/
 dataset_cropped/
 models/yolov8x.pt
+results/videos
+*.mp4
