@@ -146,7 +146,7 @@ custom_css = """
 with gr.Blocks(css=custom_css) as interface:
     with gr.Column(elem_id="app-container"):
         
-        gr.Markdown("# Cattle Health Classifier (V4 Color)", elem_classes="center-text")
+        gr.Markdown("# Cattle Health Classifier", elem_classes="center-text")
         gr.Markdown("Upload a photo of a cow or live video feed to detect if it is showing signs of sickness. Powered by a custom ResNet18 Neural Network and YOLOv8.", elem_classes="center-text")
         
         with gr.Tabs():
@@ -168,4 +168,4 @@ with gr.Blocks(css=custom_css) as interface:
                 vid_btn.click(fn=analyze_video, inputs=vid_input, outputs=[vid_output, vid_text])
 
 if __name__ == "__main__":
-    interface.launch(share=False)
+    interface.launch(share=True)
