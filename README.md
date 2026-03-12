@@ -1,6 +1,7 @@
-# Cattle Health Classifier: Edge-AI Barn Monitoring
+# Cattle Health Classifier: 
+Academic Institution: University of Guelph, School of Engineering
 
-An intelligent, hybrid computer vision application designed to monitor cattle health in real-time. This system combines **YOLOv8x** for robust object tracking in crowded barn environments with a custom-trained **ResNet18** neural network to diagnose signs of lameness or illness based on posture and visual indicators.
+Project Scope: An intelligent, hybrid computer vision application designed to monitor cattle health in real-time. This system combines **YOLOv8x** for robust object tracking in crowded barn environments with a custom-trained **ResNet18** neural network to diagnose signs of lameness or illness based on posture and visual indicators.
 
 
 
