@@ -3,7 +3,7 @@ import random
 import shutil
 
 def create_split(source_dir, train_dir, val_dir, split_ratio=0.7):
-    # Ensure the target directories exist
+    # Ensure the target dirs exist
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(val_dir, exist_ok=True)
 

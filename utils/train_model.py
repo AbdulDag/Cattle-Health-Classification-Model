@@ -6,14 +6,16 @@ from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 import os
 import copy
-
+# I got the training loop structure from Sasank Chilamkurthy's official PyTorch 
+# Transfer Learning tutorial. It's the best way to handle train/val phases and save the best weights
 def main():
-    # 1. UPGRADED: Aggressive Data Augmentation (Authentic V4)
+
     data_transforms = {
         'train': transforms.Compose([
+            #agressive data augmentation because it's a small dataset, we want to milk as much learning as possible.
             transforms.RandomResizedCrop(224, scale=(0.8, 1.0)), # Keep more of the cow in frame
             transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15), # Tilt the images randomly
+            transforms.RandomRotation(15), # Tilt the images randomly to mimic different angles
             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2), # Vary the lighting
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -26,7 +28,7 @@ def main():
         ]),
     }
 
-    # IMPORTANT: Reads from the original split dataset
+    # Reads from the original split dataset
     data_dir = 'dataset_split' 
     
     if not os.path.exists(data_dir):
@@ -41,18 +43,18 @@ def main():
     print(f"Training images: {dataset_sizes['train']} | Validation images: {dataset_sizes['val']}")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # 2. Build the Model & PARTIAL FINE-TUNING
+    # Build the Model & partial fine tuning, which means we only fine-tune the last layer to prevent overfitting and save time.
     model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
     
-    # First, freeze EVERYTHING
+    # we have to first freeze EVERY layer
     for param in model.parameters():
         param.requires_grad = False
 
-    # Second, UNFREEZE only the final convolutional block (layer4)
+    # Then, UNFREEZE only the final convolutional block (layer4) this basically teaches the model to focus on the last layer, a layer is a group of neurons that are connected to each other.
     for param in model.layer4.parameters():
         param.requires_grad = True
 
-    # 3. Build the Custom Classification Head with DROPOUT
+    # Build the custom classification head (a head is the last layer of the model, it is used to classify the image) 
     num_ftrs = model.fc.in_features
     model.fc = nn.Sequential(
         nn.Linear(num_ftrs, 128),        
@@ -60,29 +62,28 @@ def main():
         nn.Dropout(0.5),                 
         nn.Linear(128, len(class_names)) 
     )
-    # (The new fully connected layers automatically have requires_grad=True)
+    # The new fully connected layers automatically have requires_grad=True
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
 
-    # 4. Filter parameters to ONLY send the unfrozen ones to the optimizer
+    # Filter parameters to ONLY send the unfrozen ones to the optimizer
     params_to_update = []
     for name, param in model.named_parameters():
         if param.requires_grad == True:
             params_to_update.append(param)
             
-    # UPGRADED: Lower Learning Rate + Weight Decay (prevents memorization)
+    # Lower Learning Rate + Weight Decay (prevents memorization)
     optimizer = optim.Adam(params_to_update, lr=1e-4, weight_decay=1e-4)
     
-    # UPGRADED: Learning Rate Scheduler (Drops LR by 10% every 7 epochs)
+    # Learning Rate Scheduler (Drops LR by 10% every 7 epochs)
     step_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
-    # UPGRADED: Train for 25 Epochs
     num_epochs = 25
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
-    print("Starting V4 Training (Partial Fine-Tuning)...")
+    print("Starting V4 Training...")
     
     for epoch in range(num_epochs):
         print(f'Epoch {epoch+1}/{num_epochs} | LR: {optimizer.param_groups[0]["lr"]:.6f}')

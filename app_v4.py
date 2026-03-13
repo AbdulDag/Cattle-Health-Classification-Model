@@ -26,7 +26,7 @@ model.fc = nn.Sequential(
     nn.Linear(num_ftrs, 128),
     nn.ReLU(), # this function activates the neurons to learn non-linear patterns
     nn.Dropout(0.5), #Dropout regulariztion: randomly turns off 50% of neurons during training so the 
-    # network is forced to actually learn features instead of just memorizing the dataset
+    # network is forced to actually learn features instead of just memorizing the dataset, basically makes model struggle more to identify features instead of memorizng.
     nn.Linear(128, len(class_names)) # final layer that outputs the probabilities for each class
 )
 

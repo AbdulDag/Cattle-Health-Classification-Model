@@ -3,29 +3,24 @@ import shutil
 from bing_image_downloader import downloader
 from PIL import Image
 
-
+#same as get_cows.py, just diff queries
 base_dir = "cow_dataset_batch_2"
 sick_dir = os.path.join(base_dir, "1_Sick")
 healthy_dir = os.path.join(base_dir, "0_Healthy")
 
 
 sick_queries = [
-    # Visuals of "Skinny/Weak" (different words)
-    "bovine cachexia",              # Medical term for wasting away/skinny
-    "cow spine visible",            # Focuses on the top line
+    "bovine cachexia",              
+    "cow spine visible",            
     "cattle severe weight loss",
     "cow showing ribs and hip bones",
-
-    # Visuals of "Bad Posture/Pain"
-    "cow standing with arched back", # Classic sign of stomach pain
-    "lame cow walking",             # Focuses on leg/walking issues
-    "cow head pressing",            # A specific sign of brain/nervous sickness
-    "sick cow isolated in pen",     # Sick cows often separate themselves
-    
-    # Visuals of "Sad Face"
-    "cow sunken eyes",              # Sign of dehydration
+    "cow standing with arched back", 
+    "lame cow walking",             
+    "cow head pressing",            
+    "sick cow isolated in pen",     
+    "cow sunken eyes",              
     "calf with droopy ears",
-    "cow rough hair coat"           # Sick cows stop grooming themselves
+    "cow rough hair coat"          
 ]
 
 healthy_queries = [
@@ -35,7 +30,7 @@ healthy_queries = [
     "healthy angus bull", 
     "simmental cow pasture",
     
-    # "Action" shots (to teach the model that moving = healthy)
+    # to teach model move = healthy
     "cow walking firmly",
     "happy cows running",
     "herd of cattle eating",
